@@ -1,0 +1,187 @@
+---
+# tasks file for laravel_playbook
+- name: update the server
+  apt: 
+    update_cache: yes
+    upgrade: yes
+  
+- name: software-properties
+  apt:
+    name: software-properties-common
+    state: present
+- name: add-apt-repo
+  apt_repository:
+    repo: ppa:ondrej/php
+    state: present 
+
+- name: depends-installation
+  apt:
+    name: "{{ item }}"
+    state: present 
+  with_items:
+    - "{{ apt_items }}"
+- name: php-extension-installation
+  apt: 
+    name: "{{ item }}"
+    state: present 
+  with_items: 
+    - "{{ php_extensions }}"
+
+- name: start and enable service
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items: 
+    - "{{ service_list }}"
+
+- name: mysql-client
+  apt:
+    name: python3-mysqldb
+    state: present
+
+- name: remove anonymous user
+  mysql_user:
+    name: "{{ anonymous }}"
+    state: absent
+
+- name: database create
+  mysql_db:
+    name: "{{ databaseName }}"
+    state: present
+
+- name: create user
+  mysql_user:
+    name: "{{ userName }}"
+    password: "{{ passWord }}"
+    host: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ mysql_hosts }}"
+
+- name: database get privileges for user
+  mysql_user:
+    name: "{{ userName }}"
+    password: "{{ passWord }}"
+    state: present
+    host: "{{ item }}"
+    priv: "{{ databaseName }}.*: ALL,GRANT"
+  with_items:
+    - "{{ mysql_hosts }}"
+
+- name: download composer
+  get_url:
+    url: https://getcomposer.org/installer
+    dest: /tmp/composer-setup.php
+    mode: "0755"
+
+- name: install composer
+  command:
+    cmd: php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    creates: /usr/local/bin/composer
+
+- name: Clone laravel repository
+  git: 
+    repo: https://github.com/laravel/laravel
+    dest: /var/www/laravel
+    update: no
+  register: cloned
+
+- name: "Composer create-project"
+  composer:
+    command: create-project
+    global_command: false
+    working_dir: /var/www/laravel
+  environment: 
+    COMPOSER_NO_INTERACTION: "1"
+    COMPOSER_ALLOW_SUPERUSER: "1"
+  when: cloned is changed
+
+- name: set APP_DEBUG=false
+  lineinfile: dest=/var/www/laravel/.env regexp='^APP_DEBUG=' line=APP_DEBUG=false
+
+- name: set APP_ENV=production
+  lineinfile: dest=/var/www/laravel/.env regexp='^APP_ENV=' line=APP_ENV=production
+
+- name: set DB_CONNECTION=mysql
+  lineinfile: dest=/var/www/laravel/.env regexp='^DB_CONNECTION=sqlite' line=DB_CONNECTION=mysql
+
+- name: set DB_HOST=127.0.0.1
+  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_HOST=127.0.0.1' line= DB_HOST=127.0.0.1
+
+- name: set DB_PORT=3306
+  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_PORT=3306' line= DB_PORT=3306
+
+- name: set DB_DATABASE={{ databaseName }}
+  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_DATABASE=laravel' line= DB_DATABASE={{ databaseName }}  
+
+- name: set DB_USERNAME={{ userName }}
+  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_USERNAME=root' line= DB_USERNAME={{ userName }} 
+
+- name: set DB_PASSWORD={{ passWord }}
+  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_PASSWORD=' line= DB_PASSWORD={{ passWord }} 
+
+- name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: /var/www/laravel
+    owner: www-data.www-data
+    group: www-data.www-data
+    mode: '0700'
+    recurse: true
+
+- name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: /var/www/laravel
+    owner: ubuntu
+    group: sudo
+    mode: '0755'
+    recurse: true
+
+- name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: /var/www/laravel/storage
+    owner: ubuntu
+    group: sudo
+    mode: '0777'
+    recurse: true
+
+- name: Configure ufw
+  ufw:
+    rule: allow 
+    proto: tcp
+    port: "{{ item }}"
+  with_items: 
+    - 22
+    - 80
+    - 443
+
+- name: phpmyadmin download
+  unarchive:
+    src: "{{ phpmyadmin_url }}"
+    dest: "{{ phpmyadmin_dest }}"
+    remote_src: true
+# change folder name
+- name: folder rename
+  command: "{{ phpmyadmin_mv_file }}"
+  ignore_errors: true
+
+- name: configuration file rename
+  command: "{{ phpmyadmin_config }}"
+
+- name: configure nginx
+  template:
+    src: laravel.conf
+    dest: "{{ nginx.available }}laravel.conf" 
+
+- name: Run migrate laravel
+  ansible.builtin.command: php artisan migrate
+
+- name: Create symlink nginx vhost
+  file:
+    src: "{{ nginx.available }}laravel.conf"
+    dest: "{{ nginx.enable }}laravel.conf"
+    state: link
+  notify:
+    - nginx-service
+    - nginx-service-reload
+    - php-fpm-service

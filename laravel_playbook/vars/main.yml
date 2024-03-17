@@ -1,0 +1,44 @@
+---
+# vars file for laravel_playbook
+apt_items:
+  - nginx
+  - php8.2
+  - mysql-server
+  - git
+
+php_extensions:
+  - php8.2-cli
+  - php8.2-common
+  - php8.2-fpm
+  - php8.2-mysql
+  - php8.2-zip
+  - php8.2-gd
+  - php8.2-mbstring
+  - php8.2-curl
+  - php8.2-xml
+  - php8.2-bcmath
+
+service_list:
+  - nginx
+  - php8.2-fpm
+  - mysql
+
+anonymous: ""
+userName: ubuntu
+passWord: password
+databaseName: laravel
+mysql_hosts:
+  - "localhost"
+  - "%"
+  - "127.0.0.1"
+
+nginx:
+  available: /etc/nginx/sites-available/
+  enable: /etc/nginx/sites-enabled/
+
+# phpmyadmin variables
+phpmyadmin_dest: /usr/share/
+phpmyadmin_url: https://files.phpmyadmin.net/phpMyAdmin/5.2.1/phpMyAdmin-5.2.1-all-languages.tar.gz
+
+phpmyadmin_mv_file: sudo mv /usr/share/phpMyAdmin-5.2.1-all-languages /usr/share/phpmyadmin
+phpmyadmin_config: sudo cp -r /usr/share/phpmyadmin/config.sample.inc.php /usr/share/phpmyadmin/config.inc.php

@@ -1,0 +1,18 @@
+---
+# handlers file for laravel_playbook
+- name: nginx-service
+  service:
+    name: nginx
+    state: restarted
+- name: nginx-service-reload
+  service:
+    name: nginx
+    state: reloaded
+- name: php-fpm-service
+  service:
+    name: php8.2-fpm
+    state: restarted
+- name: mysql-service
+  service:
+    name: mysql 
+    state: restarted

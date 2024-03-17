@@ -1,0 +1,35 @@
+- name: Test-case-installation
+  hosts: '*'
+  become: true
+  become_user: root
+  remote_user: ubuntu
+  vars_files:
+    - ./vars.yaml
+  pre_tasks:
+    - name: Create user
+      user: 
+        name: "ubuntu"
+        groups: sudo
+        createhome: true
+        append: true
+        password: ''
+        shell: /bin/bash
+        state: present
+      # become: true
+    - name: Grant sudo permissions
+      copy:
+        dest: /etc/sudoers.d/ansible-sudo-user
+        content: "ubuntu ALL=(ALL) NOPASSWD:ALL"
+        mode: "0440"
+    - name: Adding rsa-key in /home/ubuntu/.ssh/authorized_keys
+      ansible.builtin.lineinfile:
+        path: "/home/ubuntu/.ssh/authorized_keys"
+        line: "{{ ssh_key }}"
+        
+    # - name: stop apache2 service
+    #   service:
+    #     name: apache2
+    #     state: stopped
+    #     enabled: no
+  roles:
+    - laravel_playbook
