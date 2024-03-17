@@ -163,10 +163,10 @@
 
 - name: Configure ufw
   ufw:
-    rule: allow 
+    rule: allow
     proto: tcp
     port: "{{ item }}"
-  with_items: 
+  with_items:
     - 22
     - 80
     - 443
@@ -187,15 +187,17 @@
 - name: configure nginx
   template:
     src: laravel.conf
-    dest: "{{ nginx.available }}laravel.conf" 
+    dest: "{{ nginx.available }}laravel"
 
-- name: Run migrate laravel
-  ansible.builtin.command: php artisan migrate
+# - name: Run migrate laravel
+#   ansible.builtin.shell: php artisan migrate
+#   args:
+#     chdir: /var/www/laravel
 
 - name: Create symlink nginx vhost
   file:
-    src: "{{ nginx.available }}laravel.conf"
-    dest: "{{ nginx.enable }}laravel.conf"
+    src: "{{ nginx.available }}laravel"
+    dest: "{{ nginx.enable }}laravel"
     state: link
   notify:
     - nginx-service
