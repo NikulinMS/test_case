@@ -189,11 +189,6 @@
     src: laravel.conf
     dest: "{{ nginx.available }}laravel"
 
-# - name: Run migrate laravel
-#   ansible.builtin.shell: php artisan migrate
-#   args:
-#     chdir: /var/www/laravel
-
 - name: Create symlink nginx vhost
   file:
     src: "{{ nginx.available }}laravel"
@@ -203,3 +198,8 @@
     - nginx-service
     - nginx-service-reload
     - php-fpm-service
+
+- name: Run migrate laravel
+  ansible.builtin.shell: php artisan migrate
+  args:
+    chdir: /var/www/laravel
