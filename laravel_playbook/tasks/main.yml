@@ -107,25 +107,41 @@
   lineinfile: dest=/var/www/laravel/.env regexp='^DB_CONNECTION=sqlite' line=DB_CONNECTION=mysql
 
 - name: set DB_HOST=127.0.0.1
-  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_HOST=127.0.0.1' line= DB_HOST=127.0.0.1
+  replace:
+    path: /var/www/laravel/.env
+    regexp: '^# DB_HOST=127.0.0.1'
+    replace: ' DB_HOST=127.0.0.1'
 
 - name: set DB_PORT=3306
-  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_PORT=3306' line= DB_PORT=3306
+  replace:
+    path: /var/www/laravel/.env
+    regexp: '^# DB_PORT=3306'
+    replace: ' DB_PORT=3306'
+
 
 - name: set DB_DATABASE={{ databaseName }}
-  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_DATABASE=laravel' line= DB_DATABASE={{ databaseName }}  
+  replace:
+    path: /var/www/laravel/.env
+    regexp: '^# DB_DATABASE=laravel'
+    replace: ' DB_DATABASE={{ databaseName }}'
 
 - name: set DB_USERNAME={{ userName }}
-  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_USERNAME=root' line= DB_USERNAME={{ userName }} 
+  replace:
+    path: /var/www/laravel/.env
+    regexp: '^# DB_USERNAME=root'
+    replace: ' DB_USERNAME={{ userName }}'
 
 - name: set DB_PASSWORD={{ passWord }}
-  lineinfile: dest=/var/www/laravel/.env regexp='^# DB_PASSWORD=' line= DB_PASSWORD={{ passWord }} 
+  replace:
+    path: /var/www/laravel/.env
+    regexp: '^# DB_PASSWORD='
+    replace: ' DB_PASSWORD={{ passWord }}'
 
 - name: Change file ownership, group and permissions
   ansible.builtin.file:
     path: /var/www/laravel
-    owner: www-data.www-data
-    group: www-data.www-data
+    owner: www-data
+    group: www-data
     mode: '0700'
     recurse: true
 
