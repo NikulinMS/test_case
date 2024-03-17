@@ -97,12 +97,6 @@
     COMPOSER_ALLOW_SUPERUSER: "1"
   when: cloned is changed
 
-- name: set APP_DEBUG=false
-  lineinfile: dest=/var/www/laravel/.env regexp='^APP_DEBUG=' line=APP_DEBUG=false
-
-- name: set APP_ENV=production
-  lineinfile: dest=/var/www/laravel/.env regexp='^APP_ENV=' line=APP_ENV=production
-
 - name: set DB_CONNECTION=mysql
   lineinfile: dest=/var/www/laravel/.env regexp='^DB_CONNECTION=sqlite' line=DB_CONNECTION=mysql
 
@@ -161,6 +155,36 @@
     mode: '0777'
     recurse: true
 
+- name: configure nginx
+  template:
+    src: laravel.conf
+    dest: "{{ nginx.available }}laravel"
+
+- name: Create symlink nginx vhost
+  file:
+    src: "{{ nginx.available }}laravel"
+    dest: "{{ nginx.enable }}laravel"
+    state: link
+  notify:
+    - nginx-service-reload
+    - nginx-service
+    - php-fpm-service
+
+- name: Run migrate laravel
+  ansible.builtin.shell: php artisan migrate
+  args:
+    chdir: /var/www/laravel
+
+- name: set APP_DEBUG=false
+  lineinfile: dest=/var/www/laravel/.env regexp='^APP_DEBUG=' line=APP_DEBUG=false
+
+- name: set APP_ENV=production
+  lineinfile: dest=/var/www/laravel/.env regexp='^APP_ENV=' line=APP_ENV=production
+  notify:
+    - nginx-service-reload
+    - nginx-service
+    - php-fpm-service
+
 - name: Configure ufw
   ufw:
     rule: allow
@@ -183,23 +207,7 @@
 
 - name: configuration file rename
   command: "{{ phpmyadmin_config }}"
-
-- name: configure nginx
-  template:
-    src: laravel.conf
-    dest: "{{ nginx.available }}laravel"
-
-- name: Create symlink nginx vhost
-  file:
-    src: "{{ nginx.available }}laravel"
-    dest: "{{ nginx.enable }}laravel"
-    state: link
   notify:
-    - nginx-service
     - nginx-service-reload
+    - nginx-service
     - php-fpm-service
-
-- name: Run migrate laravel
-  ansible.builtin.shell: php artisan migrate
-  args:
-    chdir: /var/www/laravel
